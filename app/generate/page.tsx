@@ -2,34 +2,7 @@
 
 import { useState } from "react";
 import { useChat } from "@ai-sdk/react";
-
-function ScoreCard({
-  isCorrect,
-  score,
-  feedback,
-}: {
-  isCorrect: boolean;
-  score: number;
-  feedback: string;
-}) {
-  return (
-    <div
-      className={`mt-2 rounded-xl border-2 p-4 transition-all ${
-        isCorrect
-          ? "border-green-400 bg-green-50"
-          : score > 0
-          ? "border-orange-400 bg-orange-50"
-          : "border-red-400 bg-red-50"
-      }`}
-    >
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-2xl">{isCorrect ? "✅" : score > 0 ? "🟠" : "❌"}</span>
-        <span className="text-lg font-bold">{score}/100</span>
-      </div>
-      <p className="text-sm text-gray-700">{feedback}</p>
-    </div>
-  );
-}
+import { ScoreCard } from "./ScoreCard";
 
 function ToolStatus({ label }: { label: string }) {
   return (
@@ -48,7 +21,6 @@ function ToolError() {
   );
 }
 
-// skeleton shown while the assistant message is streaming in
 function MessageSkeleton() {
   return (
     <div className="self-start max-w-[85%] px-4 py-3 rounded-2xl bg-white border animate-pulse w-64">
@@ -59,7 +31,6 @@ function MessageSkeleton() {
   );
 }
 
-// designed empty state — onboarding, not apology
 function EmptyState({ onExampleClick }: { onExampleClick: (text: string) => void }) {
   const examples = [
     "Make me a 5-question quiz on the water cycle",
@@ -158,10 +129,8 @@ export default function GeneratePage() {
           </div>
         ))}
 
-        {/* skeleton while waiting for the assistant's first token */}
         {status === "submitted" && <MessageSkeleton />}
 
-        {/* designed error state with retry — only retries the failed message */}
         {hasError && (
           <div className="self-start max-w-[85%] rounded-xl border-2 border-red-400 bg-red-50 p-4 text-sm">
             <p className="text-red-600 mb-2">
