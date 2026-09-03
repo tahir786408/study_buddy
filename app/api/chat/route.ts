@@ -40,10 +40,13 @@ const checkAnswer = tool({
     return { isCorrect, score, feedback };
   },
 });
+
 export async function POST(req: Request) {
+  
+
   const { messages } = await req.json();
 
-    const result = streamText({
+  const result = streamText({
     model: openrouter(MODEL),
     system: SYSTEM_PROMPT,
     messages: await convertToModelMessages(messages),
