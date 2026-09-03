@@ -1,102 +1,64 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
+import { useChat } from "@ai-sdk/react";
 
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
+function ScoreCard({
+  isCorrect,
+  score,
+  feedback,
+}: {
+  isCorrect: boolean;
+  score: number;
+  feedback: string;
+}) {
+  return (
+    <div
+      className={`mt-2 rounded-xl border-2 p-4 transition-all ${
+        isCorrect
+          ? "border-green-400 bg-green-50"
+          : score > 0
+          ? "border-orange-400 bg-orange-50"
+          : "border-red-400 bg-red-50"
+      }`}
+    >
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-2xl">{isCorrect ? "✅" : score > 0 ? "🟠" : "❌"}</span>
+        <span className="text-lg font-bold">{score}/100</span>
+      </div>
+      <p className="text-sm text-gray-700">{feedback}</p>
+    </div>
+  );
+}
+
+function ToolStatus({ label }: { label: string }) {
+  return (
+    <div className="mt-2 flex items-center gap-2 rounded-xl border bg-gray-100 px-4 py-3 text-sm text-gray-500 animate-pulse">
+      <span className="h-2 w-2 rounded-full bg-gray-400 animate-ping" />
+      {label}
+    </div>
+  );
+}
+
+function ToolError() {
+  return (
+    <div className="mt-2 rounded-xl border-2 border-red-400 bg-red-50 p-4 text-sm text-red-600">
+      Couldn&apos;t check this answer. Please try again.
+    </div>
+  );
 }
 
 export default function GeneratePage() {
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const isAtBottomRef = useRef(true);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const { messages, sendMessage, status } = useChat();
 
-  useEffect(() => {
-    if (isAtBottomRef.current && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+  const isLoading = status === "submitted" || status === "streaming";
 
-  function handleScroll() {
-    const el = scrollRef.current;
-    if (!el) return;
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    isAtBottomRef.current = distanceFromBottom < 40;
-  }
-
-  function stop() {
-    abortControllerRef.current?.abort();
-    setIsLoading(false);
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: input,
-    };
-
-    const assistantId = crypto.randomUUID();
-    const nextMessages = [...messages, userMessage];
-
-    setMessages([...nextMessages, { id: assistantId, role: "assistant", content: "" }]);
+    sendMessage({ text: input });
     setInput("");
-    setIsLoading(true);
-    isAtBottomRef.current = true;
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
-        }),
-        signal: controller.signal,
-      });
-
-      if (!response.body) throw new Error("No response body");
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        accumulated += decoder.decode(value, { stream: true });
-
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantId ? { ...m, content: accumulated } : m
-          )
-        );
-      }
-    } catch (err) {
-      if ((err as Error).name !== "AbortError") {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantId
-              ? { ...m, content: "Something went wrong. Please try again." }
-              : m
-          )
-        );
-      }
-    } finally {
-      setIsLoading(false);
-      abortControllerRef.current = null;
-    }
   }
 
   return (
@@ -106,11 +68,7 @@ export default function GeneratePage() {
         Paste your notes or a topic below, and AI will build study material for you.
       </p>
 
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto flex flex-col gap-3 mb-4 min-h-[300px] max-h-[55vh] border rounded-lg p-4 bg-gray-50"
-      >
+      <div className="flex-1 overflow-y-auto flex flex-col gap-3 mb-4 min-h-[300px] max-h-[55vh] border rounded-lg p-4 bg-gray-50">
         {messages.length === 0 && (
           <p className="text-gray-400 text-sm text-center mt-8">
             Try: &quot;Make me a 5-question quiz on the water cycle.&quot;
@@ -126,7 +84,35 @@ export default function GeneratePage() {
                 : "self-start bg-white border text-foreground"
             }`}
           >
-            {message.content || (isLoading ? "Thinking..." : "")}
+            {message.parts.map((part, i) => {
+              // plain text
+              if (part.type === "text") {
+                return <span key={i}>{part.text}</span>;
+              }
+
+              // our checkAnswer tool — render each lifecycle state distinctly
+              if (part.type === "tool-checkAnswer") {
+                if (part.state === "input-streaming") {
+                  return <ToolStatus key={i} label="Reading the answer..." />;
+                }
+                if (part.state === "input-available") {
+                  return <ToolStatus key={i} label="Checking your answer..." />;
+                }
+                if (part.state === "output-available") {
+                  const output = part.output as {
+                    isCorrect: boolean;
+                    score: number;
+                    feedback: string;
+                  };
+                  return <ScoreCard key={i} {...output} />;
+                }
+                if (part.state === "output-error") {
+                  return <ToolError key={i} />;
+                }
+              }
+
+              return null;
+            })}
           </div>
         ))}
       </div>
@@ -139,23 +125,13 @@ export default function GeneratePage() {
           disabled={isLoading}
           className="flex-1 border rounded-full px-4 py-3 text-sm outline-none focus:border-primary disabled:opacity-60"
         />
-        {isLoading ? (
-          <button
-            type="button"
-            onClick={stop}
-            className="px-5 py-3 rounded-full bg-red-500 text-white text-sm font-medium"
-          >
-            Stop
-          </button>
-        ) : (
-          <button
-            type="submit"
-            disabled={!input.trim()}
-            className="px-5 py-3 rounded-full bg-primary text-white text-sm font-medium disabled:opacity-50"
-          >
-            Send
-          </button>
-        )}
+        <button
+          type="submit"
+          disabled={!input.trim() || isLoading}
+          className="px-5 py-3 rounded-full bg-primary text-white text-sm font-medium disabled:opacity-50"
+        >
+          {isLoading ? "Sending..." : "Send"}
+        </button>
       </form>
     </main>
   );
