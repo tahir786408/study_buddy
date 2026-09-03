@@ -58,3 +58,12 @@ The `/api/chat` route defines a server-side tool the model can call when a stude
 - `input-available` — pulsing "Checking your answer..." card
 - `output-available` — a `ScoreCard` component (green border if correct, orange if partial, red if wrong)
 - `output-error` — a red bordered error card, shown if the tool execution fails
+
+
+## Button Motion Choices (FE-AA1)
+
+The Send button at `/button-demo` uses:
+- **300ms ease-out** for color/width transitions between states — fast enough to feel responsive, not so fast it feels like a snap.
+- **Spin animation (1s linear, infinite)** for the loading spinner — a constant speed reads as "still working," unlike an easing that would suggest it's slowing down/speeding up.
+- **0.4s shake** on error and **0.3s pop** on success — short enough not to delay the user from reading the text label, skipped entirely under `prefers-reduced-motion` while the red/green color and text label still communicate the result.
+- Only `transform` and `opacity`/color are animated — no layout-affecting properties — so there's no layout thrash during transitions.
