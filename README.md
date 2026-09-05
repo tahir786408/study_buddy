@@ -139,3 +139,18 @@ npm run dev
 **How AI tools built this:** I used Claude and Cursor throughout — for scaffolding new routes and components, debugging TypeScript/version-mismatch errors (e.g. `ai` SDK v4 vs v7 API changes), and writing test cases. I reviewed and understood every generated block before committing it, and fixed several AI-introduced bugs myself (e.g. duplicate `messages` destructuring, wrong `tool()` parameter name for the installed SDK version).
 
 **Browsers tested:** Chrome, Firefox (desktop), Chrome mobile.
+
+
+
+## Eval Results
+Manually tested the primary flow (quiz generation + answer checking) with 10 different topics and answer combinations:
+- Quiz/flashcard generation: 10/10 produced relevant, correctly formatted output from the given topic/notes
+- checkAnswer tool: 10/10 correctly scored exact matches (100) and no-matches (0); partial credit scoring worked as expected for close answers
+- Error handling: verified retry works after a simulated mid-stream failure (see FE-08 testing)
+- Rate limiting: verified 11th request within a minute correctly returns a 429
+
+## Limitations
+- Uses a free OpenRouter model, which can occasionally be slower or less consistent in formatting than a paid model
+- No user accounts or saved history — each session starts fresh, so there's no cross-session tracking of which topics a student struggles with (documented as a cut scope in BUILD_LOG.md)
+- Rate limiting is in-memory only and resets on server restart — fine at this scale, but wouldn't hold up under multi-instance production deployment
+- Lighthouse Performance score is 72–88 depending on the page, below the ideal 90 target (see AUDIT.md for details and next steps)
