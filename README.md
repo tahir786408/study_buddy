@@ -67,3 +67,18 @@ The Send button at `/button-demo` uses:
 - **Spin animation (1s linear, infinite)** for the loading spinner — a constant speed reads as "still working," unlike an easing that would suggest it's slowing down/speeding up.
 - **0.4s shake** on error and **0.3s pop** on success — short enough not to delay the user from reading the text label, skipped entirely under `prefers-reduced-motion` while the red/green color and text label still communicate the result.
 - Only `transform` and `opacity`/color are animated — no layout-affecting properties — so there's no layout thrash during transitions.
+
+
+
+## 3D Experience (FE-AA2)
+
+**What I built:** A configurable 3D torus-knot shape at `/3d-demo` using React Three Fiber. The user can orbit/rotate it (drag), change its color, and toggle between solid and wireframe materials.
+
+**Perf notes:**
+- Used a procedural geometry (`torusKnotGeometry`) instead of an imported 3D model file, so there's no model download/compression concern — the whole scene is generated in code and is tiny in bundle size.
+- The `<Canvas>` is wrapped in `Suspense` with a loading fallback, and `dpr={[1, 1.5]}` caps the pixel ratio so it doesn't over-render on high-DPI phone screens.
+- Respects `prefers-reduced-motion`: if enabled, the interactive 3D canvas is replaced with a static text fallback instead of an animated scene.
+- Touch works out of the box since `OrbitControls` from drei supports touch drag/pinch natively — tested on mobile.
+
+**With more time, I'd add:** a real imported `.glb` model with DRACO compression instead of a procedural shape, and a frame-rate counter to verify performance more rigorously (the FE-10 lens mentioned in the brief).
+
