@@ -41,7 +41,7 @@ function EmptyState({ onExampleClick }: { onExampleClick: (text: string) => void
   return (
     <div className="flex flex-col items-center justify-center text-center py-10 gap-3">
       <div className="text-3xl">📚</div>
-      <p className="text-gray-500 text-sm">
+      <p className="text-gray-600 text-sm">
         No quizzes yet — try one of these to get started:
       </p>
       <div className="flex flex-col gap-2 w-full max-w-sm">
@@ -61,7 +61,7 @@ function EmptyState({ onExampleClick }: { onExampleClick: (text: string) => void
 
 export default function GeneratePage() {
   const [input, setInput] = useState("");
-  const { messages, sendMessage, status, error, regenerate } = useChat();
+  const { messages, sendMessage, status, error, regenerate, stop } = useChat();
 
   const isLoading = status === "submitted" || status === "streaming";
   const hasError = status === "error";
@@ -81,11 +81,15 @@ export default function GeneratePage() {
   return (
     <main className="min-h-[100dvh] flex flex-col max-w-2xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-1">Generate a Quiz or Flashcards</h1>
-      <p className="text-gray-500 text-sm mb-4">
+      <p className="text-gray-600 text-sm mb-4">
         Paste your notes or a topic below, and AI will build study material for you.
       </p>
 
-      <div className="flex-1 overflow-y-auto flex flex-col gap-3 mb-4 min-h-[300px] max-h-[55vh] border rounded-lg p-4 bg-gray-50">
+      <div
+        aria-live="polite"
+        aria-relevant="additions text"
+        className="flex-1 overflow-y-auto flex flex-col gap-3 mb-4 min-h-[300px] max-h-[55vh] border rounded-lg p-4 bg-gray-50"
+      >
         {messages.length === 0 && !isLoading && (
           <EmptyState onExampleClick={handleExampleClick} />
         )}
@@ -159,13 +163,23 @@ export default function GeneratePage() {
           inputMode="text"
           className="flex-1 border rounded-full px-4 py-3 text-base sm:text-sm outline-none focus:border-primary disabled:opacity-60"
         />
-        <button
-          type="submit"
-          disabled={!input.trim() || isLoading}
-          className="px-5 py-3 rounded-full bg-primary text-white text-sm font-medium disabled:opacity-50 shrink-0"
-        >
-          {isLoading ? "Sending..." : "Send"}
-        </button>
+        {isLoading ? (
+          <button
+            type="button"
+            onClick={() => stop()}
+            className="px-5 py-3 rounded-full bg-red-500 text-white text-sm font-medium shrink-0"
+          >
+            Stop
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="px-5 py-3 rounded-full bg-primary text-white text-sm font-medium disabled:opacity-50 shrink-0"
+          >
+            Send
+          </button>
+        )}
       </form>
     </main>
   );
