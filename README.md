@@ -82,3 +82,18 @@ The Send button at `/button-demo` uses:
 
 **With more time, I'd add:** a real imported `.glb` model with DRACO compression instead of a procedural shape, and a frame-rate counter to verify performance more rigorously (the FE-10 lens mentioned in the brief).
 
+
+## Signature Hero Shader (FE-AA3)
+
+**What I built:** A custom GLSL fragment shader at `/hero-shader` — a purple-to-teal aurora-style gradient with layered sine waves that drift over time and lean toward the cursor, plus a subtle grain pass on top.
+
+**Uniforms used:** `u_time` (drives the wave animation), `u_resolution` (keeps the pattern aspect-correct across screen sizes), `u_mouse` (shifts the flow field toward the cursor position).
+
+**Reduced-motion/perf fallback:** Device pixel ratio is capped at 1.5 to avoid over-rendering on high-DPI screens, the animation loop pauses when the browser tab is hidden (via the Page Visibility API), and users with `prefers-reduced-motion` enabled see a static CSS gradient in the same color palette instead of the animated shader.
+
+**What each shader block does (in my words):**
+- UV coordinates are aspect-corrected so the pattern doesn't stretch on wide screens.
+- Mouse position is blended into the UVs so the whole pattern subtly shifts toward the cursor.
+- Two sine waves at different frequencies/phases are combined to create the organic, drifting "aurora" look rather than a simple repeating pattern.
+- The two brand colors are mixed based on that combined wave value.
+- A cheap pseudo-random grain value is added on top for texture, so the gradient doesn't look flat/plasticky.
