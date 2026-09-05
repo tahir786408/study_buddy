@@ -154,3 +154,8 @@ Manually tested the primary flow (quiz generation + answer checking) with 10 dif
 - No user accounts or saved history — each session starts fresh, so there's no cross-session tracking of which topics a student struggles with (documented as a cut scope in BUILD_LOG.md)
 - Rate limiting is in-memory only and resets on server restart — fine at this scale, but wouldn't hold up under multi-instance production deployment
 - Lighthouse Performance score is 72–88 depending on the page, below the ideal 90 target (see AUDIT.md for details and next steps)
+
+
+
+## Demo Video
+[Watch the 3-5 minute live demo](https://drive.google.com/file/d/1E-mDV9TcifBYtLlK0-cvYkxZwQK5PJWB/view?usp=sharing) — a live end-to-end run showing quiz generation, answer checking, and the motion/3D/shader pages, with narration explaining one design decision (rate limiting) and one limitation (no user accounts/session history).
