@@ -97,3 +97,45 @@ The Send button at `/button-demo` uses:
 - Two sine waves at different frequencies/phases are combined to create the organic, drifting "aurora" look rather than a simple repeating pattern.
 - The two brand colors are mixed based on that combined wave value.
 - A cheap pseudo-random grain value is added on top for texture, so the gradient doesn't look flat/plasticky.
+
+
+## Production Deployment (FE-11)
+
+**Live URL:** https://study-buddy-mr-fareed.vercel.app
+
+**What it does:** StudyBuddy is an AI-powered study assistant. Paste notes or a topic, and it generates a quiz or flashcards. Submit an answer and it's checked automatically via a server-side AI tool, with a scored result card.
+
+**How to run locally:**
+```bash
+git clone https://github.com/tahir786408/study_buddy.git
+cd study_buddy
+npm install --legacy-peer-deps
+```
+Create a `.env.local` file with:
+
+Then run:
+```bash
+npm run dev
+```
+
+**Environment variables:**
+| Variable | Purpose |
+|---|---|
+| `OPENROUTER_API_KEY` | Auth key for the OpenRouter AI provider used to generate quiz/flashcard content |
+
+**Architecture overview:**
+- **Frontend:** Next.js App Router, React, Tailwind CSS
+- **AI layer:** Vercel AI SDK (`streamText`, `tools`) talking to OpenRouter's free model
+- **Chat route (`app/api/chat/route.ts`):** streams AI responses, defines the `checkAnswer` tool with a Zod schema, rate-limits requests (10/min per IP), caps input length (4000 chars), and sets `maxDuration = 30` to prevent stuck streams
+- **UI (`app/generate/page.tsx`):** uses `useChat` to render streamed text, tool call lifecycle states (loading/success/error), a skeleton for pending responses, a designed empty state, and a retry-on-error flow
+- **Testing:** Vitest + React Testing Library for component tests (mocked AI route), Playwright for one end-to-end test of the primary flow, both run in GitHub Actions CI
+- **Other pages:** `/button-demo` (motion micro-interactions), `/3d-demo` (React Three Fiber configurator), `/hero-shader` (custom GLSL fragment shader)
+
+**Production hardening:**
+- Rate limiting: 10 requests per minute per IP (in-memory, resets on server restart)
+- Input length capped at 4000 characters to prevent abuse
+- `maxDuration = 30` on the streaming route to avoid runaway requests
+
+**How AI tools built this:** I used Claude and Cursor throughout — for scaffolding new routes and components, debugging TypeScript/version-mismatch errors (e.g. `ai` SDK v4 vs v7 API changes), and writing test cases. I reviewed and understood every generated block before committing it, and fixed several AI-introduced bugs myself (e.g. duplicate `messages` destructuring, wrong `tool()` parameter name for the installed SDK version).
+
+**Browsers tested:** Chrome, Firefox (desktop), Chrome mobile.
